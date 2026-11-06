@@ -13,17 +13,17 @@ void OLED_I2C_Init(void)
 {
     // 启用GPIOB时钟
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-    
+
     // 初始化I2C引脚
     GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;  // 推挽输出
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10; // SCL
     GPIO_Init(GPIOB, &GPIO_InitStructure);
-    
+
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11; // SDA
     GPIO_Init(GPIOB, &GPIO_InitStructure);
-    
+
     // 确保初始状态为高电平
     OLED_W_SCL(1);
     OLED_W_SDA(1);
@@ -41,7 +41,7 @@ void OLED_SoftwareInit(void)
 {
     // 1. 初始化I2C接口
     OLED_I2C_Init();
-    
+
     // 2. 发送多个起始条件以确保模块唤醒
     for(int i = 0; i < 3; i++) {
         OLED_I2C_Start();
@@ -118,7 +118,7 @@ void OLED_WriteCommand(uint8_t Command)
 	OLED_I2C_Start();
 	OLED_I2C_SendByte(0x78);		//从机地址
 	OLED_I2C_SendByte(0x00);		//写命令
-	OLED_I2C_SendByte(Command); 
+	OLED_I2C_SendByte(Command);
 	OLED_I2C_Stop();
 }
 
@@ -155,7 +155,7 @@ void OLED_SetCursor(uint8_t Y, uint8_t X)
   * @retval 无
   */
 void OLED_Clear(void)
-{  
+{
 	uint8_t i, j;
 	for (j = 0; j < 8; j++)
 	{
@@ -175,7 +175,7 @@ void OLED_Clear(void)
   * @retval 无
   */
 void OLED_ShowChar(uint8_t Line, uint8_t Column, char Char)
-{      	
+{
 	uint8_t i;
 	OLED_SetCursor((Line - 1) * 2, (Column - 1) * 8);		//设置光标位置在上半部分
 	for (i = 0; i < 8; i++)
@@ -230,7 +230,7 @@ uint32_t OLED_Pow(uint32_t X, uint32_t Y)
 void OLED_ShowNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Length)
 {
 	uint8_t i;
-	for (i = 0; i < Length; i++)							
+	for (i = 0; i < Length; i++)
 	{
 		OLED_ShowChar(Line, Column + i, Number / OLED_Pow(10, Length - i - 1) % 10 + '0');
 	}
@@ -258,7 +258,7 @@ void OLED_ShowSignedNum(uint8_t Line, uint8_t Column, int32_t Number, uint8_t Le
 		OLED_ShowChar(Line, Column, '-');
 		Number1 = -Number;
 	}
-	for (i = 0; i < Length; i++)							
+	for (i = 0; i < Length; i++)
 	{
 		OLED_ShowChar(Line, Column + i + 1, Number1 / OLED_Pow(10, Length - i - 1) % 10 + '0');
 	}
@@ -275,7 +275,7 @@ void OLED_ShowSignedNum(uint8_t Line, uint8_t Column, int32_t Number, uint8_t Le
 void OLED_ShowHexNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Length)
 {
 	uint8_t i, SingleNumber;
-	for (i = 0; i < Length; i++)							
+	for (i = 0; i < Length; i++)
 	{
 		SingleNumber = Number / OLED_Pow(16, Length - i - 1) % 16;
 		if (SingleNumber < 10)
@@ -300,7 +300,7 @@ void OLED_ShowHexNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Leng
 void OLED_ShowBinNum(uint8_t Line, uint8_t Column, uint32_t Number, uint8_t Length)
 {
 	uint8_t i;
-	for (i = 0; i < Length; i++)							
+	for (i = 0; i < Length; i++)
 	{
 		OLED_ShowChar(Line, Column + i, Number / OLED_Pow(2, Length - i - 1) % 2 + '0');
 	}
@@ -315,10 +315,10 @@ void OLED_Init(void)
 {
     // 1. 软件唤醒流程
     OLED_SoftwareInit();
-    
+
     // 2. 基础初始化
     Delay_ms(500);  // 确保上电稳定
-    
+
     // 3. 发送关键初始化命令序列（简化版）
     const uint8_t init_sequence[] = {
         0xAE, // 关闭显示
@@ -349,13 +349,13 @@ void OLED_Init(void)
         0x14, // 开启充电泵
         0xAF  // 开启显示
     };
-    
+
     // 发送初始化序列
     for(uint16_t i = 0; i < sizeof(init_sequence); i++) {
         if(i > 0 && (i % 5 == 0)) Delay_us(50);  // 每5个命令后稍作延迟
         OLED_WriteCommand(init_sequence[i]);
     }
-    
+
     // 4. 清屏
     OLED_Clear();
     Delay_ms(100);
@@ -371,11 +371,11 @@ void OLED_ShowTelemetryData(void)
 {
     // 清屏避免残影
     OLED_Clear();
-    
+
     // 1. 显示赛道偏差 (第一行)
     OLED_ShowString(1, 1, "Dev:");
     OLED_ShowSignedNum(1, 5, g_telemetryData.trackDeviation, 4);
-    
+
     // 2. 显示电感ADC值 (第二行，显示前3路)
     OLED_ShowString(2, 1, "ADC:");
     OLED_ShowNum(2, 5, g_telemetryData.adcValues[0], 4); // L2
@@ -383,13 +383,13 @@ void OLED_ShowTelemetryData(void)
     OLED_ShowNum(2, 11, g_telemetryData.adcValues[1], 4); // L1
     OLED_ShowString(2, 16, ",");
     OLED_ShowNum(2, 17, g_telemetryData.adcValues[2], 4); // M
-    
+
     // 3. 显示速度数据 (第三行)
     OLED_ShowString(3, 1, "Spd:");
     OLED_ShowNum(3, 5, (uint32_t)g_telemetryData.targetSpeed, 3); // 目标速度
     OLED_ShowString(3, 9, "/");
     OLED_ShowNum(3, 10, (uint32_t)g_telemetryData.currentSpeed, 3); // 当前速度
-    
+
     // 4. 显示姿态角 (第四行)
     OLED_ShowString(4, 1, "Yaw:");
     OLED_ShowNum(4, 5, (uint32_t)(g_telemetryData.yawAngle + 0.5f), 3); // 四舍五入显示整数

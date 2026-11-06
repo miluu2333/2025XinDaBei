@@ -11,7 +11,7 @@ typedef struct {
     int16_t rightDuty;        // 右电机PWM占空比
     int16_t leftDir;          // 左电机方向 (1: 正转, -1: 反转)
     int16_t rightDir;         // 右电机方向 (1: 正转, -1: 反转)
-    
+
     float targetSpeed;        // 目标速度 (cm/s)
     float currentSpeed;       // 当前速度 (cm/s)
     int16_t differentSpeed;   // 差速值

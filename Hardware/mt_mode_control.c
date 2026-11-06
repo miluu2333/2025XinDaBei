@@ -33,7 +33,7 @@ void ModeControl_Key1_Handle(uint8_t key_state)
     if (key_state == KEY_CLICK)
     {
         RUN_MODE next_mode = g_mode_state.current_mode;
-        
+
         // 简单的状态机切换逻辑
         switch (g_mode_state.current_mode) {
             case MODE_STOP:
@@ -49,7 +49,7 @@ void ModeControl_Key1_Handle(uint8_t key_state)
                 next_mode = MODE_STOP;
                 break;
         }
-        
+
         // 如果处于急停状态，任何按键操作都先解除急停，回到停止模式
         if (g_mode_state.emergency_active) {
             ModeControl_ClearEmergency();
@@ -89,7 +89,7 @@ void ModeControl_Execute(void)
         Motor_Stop();
         return;
     }
-    
+
     switch (g_mode_state.current_mode)
     {
         case MODE_STOP:
@@ -97,24 +97,24 @@ void ModeControl_Execute(void)
             // 动作: 强制锁死电机
             Motor_Stop();
             break;
-            
+
         case MODE_DEBUG:
             // 模式2: 调试模式
             // 动作:
             /* 强制锁死电机，防止误动作 */
             Motor_Stop();
-            
+
             // 传感器数据更新和VOFA发送由 main.c 统一处理，这里不用写
             // (只要不在 STOP 模式把系统时钟关了就行)
             break;
-            
+
         case MODE_TRACKING:
             // 模式3: 循迹模式
             // 动作:
             // 1. 这里的电机控制逻辑实际上是在 main.c 的 PID 定时器里执行的
             // 2. 这里只需要确保不发送 Motor_Stop() 即可
             break;
-            
+
         default:
             Motor_Stop();
             break;
@@ -127,12 +127,12 @@ void ModeControl_Execute(void)
 void ModeControl_SetMode(RUN_MODE new_mode)
 {
     if (g_mode_state.current_mode == new_mode) return;
-    
+
     g_mode_state.last_mode = g_mode_state.current_mode;
     g_mode_state.current_mode = new_mode;
     g_mode_state.mode_changed = 1;
     g_mode_state.mode_switch_time = GetTick();
-    
+
     // 模式切换提示音 (通过声音区分模式)
     switch (new_mode)
     {
@@ -141,7 +141,7 @@ void ModeControl_SetMode(RUN_MODE new_mode)
             Buzzer_Tone(1000, 100);
             Motor_Stop(); // 立即停车
             break;
-            
+
         case MODE_DEBUG:
             // 响两声: 滴-滴
             Buzzer_Tone(1000, 100);
@@ -150,13 +150,13 @@ void ModeControl_SetMode(RUN_MODE new_mode)
             /* 强制停车，不再记录调试目标角度 */
             Motor_Stop();
             break;
-            
+
         case MODE_TRACKING:
             // 响一长声: 滴~~~~ (准备起飞)
             Buzzer_Tone(2000, 400);
             // 这里不调用 Motor_Stop，交给 PID 接管
             break;
-            
+
         default:
             Buzzer_Beep(50);
             break;
@@ -168,7 +168,7 @@ void ModeControl_EmergencyStop(void)
     g_mode_state.emergency_active = 1;
     ModeControl_SetMode(MODE_STOP); // 切回停止模式
     Motor_Stop();
-    
+
     for(int i=0; i<3; i++) {
         Buzzer_Tone(3000, 100);
         Delay_ms(100);

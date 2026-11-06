@@ -7,9 +7,9 @@
 #include "mt_track_detect.h"
 #include "main.h"
 #include <string.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include "Delay.h"
-#include <math.h> 
+#include <math.h>
 
 // 滤波系数
 #define FILTER_ALPHA  0.7f
@@ -29,27 +29,27 @@ void TrackDetect_Update(void) {
     for (uint8_t i = 0; i < SENSOR_MAX; i++) {
         g_trackSensor.raw[i] = TrackDetect_ReadADC((SensorChannel_e)i);
     }
-    
+
     // 2. 处理
     TrackDetect_FilterData();
     TrackDetect_NormalizeData();
-    TrackDetect_CalculateDeviation(); 
-    
+    TrackDetect_CalculateDeviation();
+
     // 3. 特征检测
     g_trackSensor.ringEntryDetected = TrackDetect_CheckRingEntry();
     g_trackSensor.ringExitDetected = TrackDetect_CheckRingExit();
     g_trackSensor.sharpTurnDetected = TrackDetect_CheckSharpTurn();
-    
+
     // 4. 丢线计时
     float total_energy = 0;
     for (uint8_t i = 0; i < SENSOR_MAX; i++) {
         total_energy += (float)g_trackSensor.filtered[i];
     }
 
-    if (total_energy < 300) { 
-        g_trackSensor.lostLineDuration += 2; 
-    } else { 
-        g_trackSensor.lostLineDuration = 0; 
+    if (total_energy < 300) {
+        g_trackSensor.lostLineDuration += 2;
+    } else {
+        g_trackSensor.lostLineDuration = 0;
     }
 }
 
@@ -64,61 +64,61 @@ TrackElementType_e TrackDetect_GetCurrentElement(void) {
 
 // 滤波
 void TrackDetect_FilterData(void) {
-    static float last_filtered[SENSOR_MAX] = {0}; 
-    static uint8_t first_run = 1; 
-    
+    static float last_filtered[SENSOR_MAX] = {0};
+    static uint8_t first_run = 1;
+
     for (uint8_t i = 0; i < SENSOR_MAX; i++) {
         uint16_t current_raw = g_trackSensor.raw[i];
         if (first_run) last_filtered[i] = (float)current_raw;
-        
+
         float lpf_val = FILTER_ALPHA * (float)current_raw + (1.0f - FILTER_ALPHA) * last_filtered[i];
         last_filtered[i] = lpf_val;
-        
-        g_trackSensor.filtered[i] = (uint16_t)lpf_val; 
+
+        g_trackSensor.filtered[i] = (uint16_t)lpf_val;
     }
     first_run = 0;
 }
 
 // 归一化
-void TrackDetect_NormalizeData(void) { 
-     uint16_t maxH = 0; 
-     uint16_t maxV = 0; 
-     
-     maxH = g_trackSensor.filtered[SENSOR_L2]; 
-     if (g_trackSensor.filtered[SENSOR_M] > maxH) maxH = g_trackSensor.filtered[SENSOR_M]; 
-     if (g_trackSensor.filtered[SENSOR_R2] > maxH) maxH = g_trackSensor.filtered[SENSOR_R2]; 
-     
-     maxV = g_trackSensor.filtered[SENSOR_L1]; 
-     if (g_trackSensor.filtered[SENSOR_R1] > maxV) maxV = g_trackSensor.filtered[SENSOR_R1]; 
- 
-     if (maxH < 100) maxH = 100; 
-     if (maxV < 100) maxV = 100; 
- 
-     for (int i = 0; i < SENSOR_MAX; i++) { 
-         float ratio = 0; 
-         if (i == SENSOR_L1 || i == SENSOR_R1) { 
-             ratio = (float)g_trackSensor.filtered[i] / maxV; 
-         } else { 
-             ratio = (float)g_trackSensor.filtered[i] / maxH; 
-         } 
+void TrackDetect_NormalizeData(void) {
+     uint16_t maxH = 0;
+     uint16_t maxV = 0;
+
+     maxH = g_trackSensor.filtered[SENSOR_L2];
+     if (g_trackSensor.filtered[SENSOR_M] > maxH) maxH = g_trackSensor.filtered[SENSOR_M];
+     if (g_trackSensor.filtered[SENSOR_R2] > maxH) maxH = g_trackSensor.filtered[SENSOR_R2];
+
+     maxV = g_trackSensor.filtered[SENSOR_L1];
+     if (g_trackSensor.filtered[SENSOR_R1] > maxV) maxV = g_trackSensor.filtered[SENSOR_R1];
+
+     if (maxH < 100) maxH = 100;
+     if (maxV < 100) maxV = 100;
+
+     for (int i = 0; i < SENSOR_MAX; i++) {
+         float ratio = 0;
+         if (i == SENSOR_L1 || i == SENSOR_R1) {
+             ratio = (float)g_trackSensor.filtered[i] / maxV;
+         } else {
+             ratio = (float)g_trackSensor.filtered[i] / maxH;
+         }
          if (ratio > 1.0f) ratio = 1.0f;
-         g_trackSensor.normalized[i] = (uint16_t)(ratio * 4095.0f); 
+         g_trackSensor.normalized[i] = (uint16_t)(ratio * 4095.0f);
      }
-     
-     g_trackSensor.leftDiff = g_trackSensor.normalized[SENSOR_L1] - g_trackSensor.normalized[SENSOR_L2]; 
-     g_trackSensor.rightDiff = g_trackSensor.normalized[SENSOR_R1] - g_trackSensor.normalized[SENSOR_R2]; 
-     g_trackSensor.centerValue = g_trackSensor.normalized[SENSOR_M]; 
+
+     g_trackSensor.leftDiff = g_trackSensor.normalized[SENSOR_L1] - g_trackSensor.normalized[SENSOR_L2];
+     g_trackSensor.rightDiff = g_trackSensor.normalized[SENSOR_R1] - g_trackSensor.normalized[SENSOR_R2];
+     g_trackSensor.centerValue = g_trackSensor.normalized[SENSOR_M];
  }
 
 // 偏差计算 (保持不变，使用 normalized 数据)
 void TrackDetect_CalculateDeviation(void) {
     g_trackSensor.lastDeviation = g_trackSensor.deviation;
-    
-    float L_out = (float)g_trackSensor.normalized[SENSOR_L2]; 
-    float L_in  = (float)g_trackSensor.normalized[SENSOR_L1]; 
-    float M     = (float)g_trackSensor.normalized[SENSOR_M];  
-    float R_in  = (float)g_trackSensor.normalized[SENSOR_R1]; 
-    float R_out = (float)g_trackSensor.normalized[SENSOR_R2]; 
+
+    float L_out = (float)g_trackSensor.normalized[SENSOR_L2];
+    float L_in  = (float)g_trackSensor.normalized[SENSOR_L1];
+    float M     = (float)g_trackSensor.normalized[SENSOR_M];
+    float R_in  = (float)g_trackSensor.normalized[SENSOR_R1];
+    float R_out = (float)g_trackSensor.normalized[SENSOR_R2];
 
     float total_energy = L_out + L_in + M + R_in + R_out;
 
@@ -128,18 +128,18 @@ void TrackDetect_CalculateDeviation(void) {
     }
 
     // 权重
-    float K_out = 1.5f;   
-    float K_in  = 0.3f;   
-    
+    float K_out = 1.5f;
+    float K_in  = 0.3f;
+
     float diff = K_out * (L_out - R_out) + K_in * (L_in - R_in);
-    float Scale = 1200.0f; 
+    float Scale = 1200.0f;
     float dev = (diff / total_energy) * Scale;
 
     if (dev > 1500) dev = 1500;
     if (dev < -1500) dev = -1500;
-    
+
     g_trackSensor.deviation = (int16_t)dev;
-    
+
     if (abs(g_trackSensor.deviation) > 20) {
         g_trackSensor.lostLineLastValidDev = g_trackSensor.deviation;
     }
@@ -210,6 +210,6 @@ void TrackDetect_AddFeatureToMemory(TrackElementType_e type, int16_t deviation) 
 TrackDetection TrackDetect_GetDetectionResult(void) {
     TrackDetection res = {0};
     res.deviation = g_trackSensor.deviation;
-    res.has_detected_ring = g_trackSensor.ringEntryDetected; 
+    res.has_detected_ring = g_trackSensor.ringEntryDetected;
     return res;
 }

@@ -61,6 +61,6 @@ void Delay_us(uint32_t us)
     // 72MHz 下，指令周期约 1/72 us。
     // 简单的循环计数，需要根据编译器优化调整。
     // 这里给一个经验值，大约 1us 循环 9-10 次左右
-    uint32_t i = us * 9; 
+    uint32_t i = us * 9;
     while(i--);
 }

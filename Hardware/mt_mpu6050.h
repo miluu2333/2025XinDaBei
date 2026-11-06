@@ -62,31 +62,31 @@ typedef struct {
     int16_t accelRaw[3];     // 加速度计原始数据 [X, Y, Z]
     int16_t gyroRaw[3];      // 陀螺仪原始数据 [X, Y, Z]
     int16_t tempRaw;         // 温度传感器原始数据
-    
+
     // 转换后的数据
     float accelG[3];         // 加速度计数据 (g)
     float gyroDPS[3];        // 陀螺仪数据 (°/s)
     float temperature;       // 温度 (°C)
-    
+
     // 姿态数据
     float yaw;               // 偏航角 (°)
     float pitch;             // 俯仰角 (°)
     float roll;              // 横滚角 (°)
-    
+
     // 配置参数
     GyroFullScale_e gyroFS;  // 陀螺仪量程
     AccelFullScale_e accelFS;// 加速度计量程
     float gyroSensitivity;   // 陀螺仪灵敏度 (°/s/LSB)
     float accelSensitivity;  // 加速度计灵敏度 (g/LSB)
-    
+
     // 校准参数
     float gyroBias[3];       // 陀螺仪零偏
     float accelBias[3];      // 加速度计零偏
-    
+
     // 滤波参数
     float complementaryAlpha; // 互补滤波系数
     bool filterEnable;       // 滤波使能标志
-    
+
     // 初始化标志
     bool initialized;        // 初始化完成标志
     bool calibrationDone;    // 校准完成标志

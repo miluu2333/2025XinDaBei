@@ -3,8 +3,8 @@
 #include "mt_mpu6050.h"
 #include "mt_motor.h"
 #include "mt_track_detect.h"
-#include <math.h>   
-#include <stdlib.h> 
+#include <math.h>
+#include <stdlib.h>
 
 extern int setup_speed_l;
 
@@ -15,15 +15,15 @@ float v_target_r = 0.0f;
 
 void MotorControl_Init(void) {
     Motor_Init();
-    
+
 
     /* 单环低速档参数 */
 
-    
+
     // 1. 角度锁参数 (Yaw -> PWM)
     g_pidConfig.angle_kp = 65.0f;     // 角度环比例 (用于环岛打角)
     g_pidConfig.angle_kd = 0.5f;       // 角度环微分
-    
+
     // 2. 动力转移分配相关参数
     g_pidConfig.outer_kp = 280.0f;      // 外环P，提高响应速度
     g_pidConfig.outer_kd = 50.5f;      // 外环D
@@ -39,7 +39,7 @@ static inline float ClampF(float x, float lo, float hi) {
 /* 单轮 PWM 上限，对应 TIM1 ARR = 999 的占空比量程。 */
 #define ABS_MAX_PWM   200.0f
 #define YAW_MAX_OUT     400.0f
-#define MOTOR_DEAD_ZONE 0.0f 
+#define MOTOR_DEAD_ZONE 0.0f
 // ============================================================
 // 模式 1: 纯巡线控制 (无陀螺仪参与，纯 Error 前馈)
 // ============================================================
@@ -47,8 +47,8 @@ void Track_Line_Control(void) {
     // A. 偏差计算
     float raw_error = (float)TrackDetect_GetDeviation();
     float error_norm = ClampF(raw_error / 1000.0f, -1.0f, 1.0f);
-    
-    // --- 核心修改：非线性放大 --- 
+
+    // --- 核心修改：非线性放大 ---
     // 使用 powf(abs) 保持符号，这会显著拉高 0 附近的增益
     float error_abs = fabs(error_norm);
     if (error_abs > 0.001f) {
@@ -62,8 +62,8 @@ void Track_Line_Control(void) {
     last_error_norm = error_norm;
 
     // B. 基础转身量计算
-    float turn_offset = (error_norm * g_pidConfig.outer_kp) + 
-                        (error_rate * g_pidConfig.outer_kd) + 
+    float turn_offset = (error_norm * g_pidConfig.outer_kp) +
+                        (error_rate * g_pidConfig.outer_kd) +
                         (error_norm * g_pidConfig.feedforward);
 
     float base = (float)setup_speed_l;
@@ -90,31 +90,31 @@ void Track_Line_Control(void) {
 void Yaw_control_200hz(int target_angle) {
     // 获取当前角度
     float current_yaw = g_mpu6050.yaw;
-    
+
     // 计算角度误差 (目标 - 当前)
     float angle_error = (float)target_angle - current_yaw;
-    
+
     // 计算微分
     static float last_angle_error = 0;
     float angle_rate = angle_error - last_angle_error;
     last_angle_error = angle_error;
-    
+
     // PD 计算输出
     float angle_out = (angle_error * g_pidConfig.angle_kp) + (angle_rate * g_pidConfig.angle_kd);
-    
+
     // 限制修正力度
     angle_out = ClampF(angle_out, -YAW_MAX_OUT, YAW_MAX_OUT);
-    
+
     // 叠加到基础速度上
     // 如果 angle_out > 0 (需要向左转)，则左轮减，右轮加 (假设左转对应 yaw 增加)
     // 注意：这里方向要根据你的陀螺仪方向实测调整
     // 假设：Yaw逆时针增加(左转为正)，为了追赶目标(大值)，需要左转 -> 左轮减，右轮加
-    
+
     // 修正：通常 target > current 时，我们需要往正方向转(左转)
     // 左转 = 左轮慢，右轮快
     v_target_l = (float)setup_speed_l - angle_out;
     v_target_r = (float)setup_speed_l + angle_out;
-    
+
     /* 电机死区补偿：当前设为 0，即不补偿。
        若更换驱动或电机出现低速不转，把 MOTOR_DEAD_ZONE 调到实测阈值即可。 */
     if (v_target_l >  1.0f) v_target_l += MOTOR_DEAD_ZONE;

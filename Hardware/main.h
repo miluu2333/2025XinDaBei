@@ -80,7 +80,7 @@
 #define I2C_SCL_PIN          GPIO_Pin_10
 #define I2C_SDA_PIN          GPIO_Pin_11
 #define I2C_PORT             GPIOB
-#define I2C_PERIPH           I2C2 
+#define I2C_PERIPH           I2C2
 
 // 8. 蜂鸣器 - 图片: PB15
 #define BUZZER_PIN           GPIO_Pin_15

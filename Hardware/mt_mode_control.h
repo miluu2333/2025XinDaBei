@@ -27,11 +27,11 @@ typedef struct {
     OLED_MENU current_menu;     // 当前菜单
     uint8_t mode_changed;       // 模式改变标志
     uint32_t mode_switch_time;  // 模式切换时间
-    
+
     // 按键状态
     uint8_t key1_click_count;
     uint32_t key1_last_click;
-    
+
     // 紧急停止
     uint8_t emergency_active;
     uint32_t emergency_time;

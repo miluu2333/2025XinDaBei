@@ -42,24 +42,24 @@ typedef struct {
     VehicleState_e currentState;
     VehicleState_e lastState;
     uint32_t stateEnterTime;      // 进入状态的时间戳
-    
+
     // 环岛相关
     RingPhase_e ringPhase;
     float ringTargetYaw;          // 目标角度
-    
+
     /* 环岛积分锁计数变量 */
     float ringEntryYaw;           // 入环时的基准角度 (0°参考点)
     int8_t ringDirection;         // 环岛方向: 1为左环(Yaw增加), -1为右环(Yaw减小)
-    
+
     // 障碍物相关
     ObstaclePhase_e obsPhase;
     float obsTargetYaw;           // 目标角度
     uint32_t obsPhaseTime;        // 阶段计时
-    
+
     // 直角弯相关
     SharpTurnPhase_e sharpPhase;
     float sharpTargetYaw;
-    
+
     // 标志位
     bool lockStatus;              // 状态锁定 (防止跳变)
 } StateMachine_t;

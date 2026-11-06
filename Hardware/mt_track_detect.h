@@ -56,34 +56,34 @@ typedef struct {
     uint16_t raw[5];           // 原始ADC值
     uint16_t filtered[5];      // 滤波后的值
     uint16_t normalized[5];    // 归一化后的值
-    
+
     int16_t deviation;         // 赛道偏差值 (-1000 ~ 1000)
     int16_t lastDeviation;     // 上一次偏差值
-    
+
     // 特征值
     int16_t leftDiff;          // 左侧电感差值
     int16_t rightDiff;         // 右侧电感差值
     int16_t centerValue;       // 中心电感值
     int16_t maxValue;          // 最大电感值
     int16_t minValue;          // 最小电感值
-    
+
     // 赛道元素检测标志
     bool ringEntryDetected;    // 环岛入口检测标志
     bool ringExitDetected;     // 环岛出口检测标志
     bool sharpTurnDetected;    // 直角弯检测标志
-    
+
     // 丢线保护相关
     LostLineStatus_e lostLineStatus; // 丢线状态
     uint32_t lostLineStartTime;      // 开始丢线的时间
     uint32_t lostLineDuration;       // 丢线持续时间
     int16_t lostLineLastValidDev;    // 丢线前的最后有效偏差
     bool lostLineRecovered;          // 恢复标志
-    
+
     // 滤波参数
     uint8_t filterWindow;      // 滑动窗口大小
     uint16_t filterBuffer[SENSOR_MAX][5]; // 滤波缓冲区，窗口大小改为5
     uint8_t bufferIndex;       // 缓冲区索引
-    
+
     // 赛道特征记忆功能
     TrackFeature_t featureMemory[TRACK_FEATURE_MEMORY_SIZE];  // 特征记忆缓冲区
     uint8_t featureMemoryIndex;       // 当前特征索引
