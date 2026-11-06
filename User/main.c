@@ -78,7 +78,7 @@ int main(void) {
     // 1. 系统底层初始化
     SystemInit();
     
-    // 2.【必须最先初始化】SysTick定时器
+    /* SysTick 定时器必须最先初始化 */
     SysTick_Init();
 
     // 3. 基础外设时钟和GPIO初始化
@@ -191,7 +191,7 @@ int main(void) {
             
             TrackDetect_Update();
             
-                    // 【核心保护】丢线 50ms 停止
+                    /* 丢线超过 50 ms 时停车 */
                     if (g_trackSensor.lostLineDuration >= 20) {
                 // 1. 切换模式为停止
                 ModeControl_SetMode(MODE_STOP);
@@ -252,14 +252,14 @@ void RCC_Configuration(void) {
 void GPIO_Configuration(void) {
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
     
-    // 1. 【核心修复】恢复这行代码！把 TIM2 彻底移走
+    /* 恢复 TIM2 配置，避免与其他模块冲突 */
     // 这会将 TIM2 的引脚映射到 PA15/PB3 等位置，彻底释放 PA0
     GPIO_PinRemapConfig(GPIO_FullRemap_TIM2, ENABLE);
     
     // 2. 禁用 JTAG 释放 PB3/PB4 (保持不变)
     GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
     
-    // 3. 【注释掉】TIM3 的重映射 (既然不用编码器了，就别映射，让 PB0/PB1 回归纯真)
+    /* 不使用编码器时不做 TIM3 重映射，保留 PB0 / PB1 给其他外设 */
     // GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
     
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -332,7 +332,7 @@ void GPIO_Configuration(void) {
     
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
     
-    // 【注释掉】EXTI 相关的配置 (既然用了轮询，就不需要中断线了)
+    /* 采用轮询方式，不启用 EXTI 中断线 */
     /*
     EXTI_InitTypeDef EXTI_InitStructure;
     GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource1);
@@ -344,7 +344,7 @@ void GPIO_Configuration(void) {
     */
 }
 
-// 【补全】缺失的 NVIC 配置函数
+/* NVIC 配置（补齐） */
 void NVIC_Configuration(void) {
     // NVIC_InitTypeDef NVIC_InitStructure;
     
@@ -352,7 +352,7 @@ void NVIC_Configuration(void) {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     
     // ------------------ 最高优先级中断（抢占优先级0）------------------
-    // 1. 【注释掉】EXTI1 中断使能 (防止中断空转抢占 CPU)
+    /* 不使能 EXTI1 中断，避免空转占用 CPU */
     /*
     NVIC_InitStructure.NVIC_IRQChannel = EXTI1_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;

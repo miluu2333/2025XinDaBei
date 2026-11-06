@@ -26,7 +26,7 @@ StateMachine_t g_stateMachine;
 // 本地静态变量
 // ====================================================================
 static uint8_t s_distCheckCount = 0; // 距离检测滤波计数
-static uint8_t s_avoidPassCount = 0; // 【关键】已完成的避障次数计数
+static uint8_t s_avoidPassCount = 0;  /* 已完成的避障次数 */
 
 // ====================================================================
 // 参数配置
@@ -74,7 +74,7 @@ void State_HandleStraight(void) {
         return;
     }
 
-    // 2. 【核心修改】检查直角弯
+    /* 检查直角弯 */
     // 调用刚才重写的 CheckSharpTurn
     if (TrackDetect_CheckSharpTurn()) {
         Buzzer_Beep(50); // 短鸣提示检测到直角
@@ -178,7 +178,7 @@ void State_HandleRing(void) {
 }
 
 // ====================================================================
-// 3. 【重写】避障动作执行 (做完3次后停车)
+/* 避障动作执行：完成 3 次后停车 */
 // ====================================================================
 void State_HandleObstacle(void) {
     float currentYaw = g_mpu6050.yaw;
@@ -229,7 +229,7 @@ void State_HandleObstacle(void) {
                 int16_t dev = TrackDetect_GetDeviation();
                 // 抓到线了 (偏差变小)
                 if (abs(dev) < 400) { 
-                    // 【核心逻辑】避障动作完成
+                    /* 避障动作完成 */
                     s_avoidPassCount++; // 计数器+1
                     
                     if (s_avoidPassCount >= 3) {

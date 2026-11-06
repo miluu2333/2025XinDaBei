@@ -1,6 +1,6 @@
 # 已知状态与维护提示
 
-本仓库是比赛完赛版本，代码里保留了大量现场调试的临时状态。整理归档时**没有改变实际控制行为**，只修复了明确的编码缺陷（除零、空操作、宏重复求值、越界保护）并统一注释。
+本仓库是比赛完赛版本，代码里保留了大量现场调试的临时状态。整理归档时**没有改变实际控制行为**，只修复了明确的编码缺陷（除零、空操作、宏重复求值、越界保护）、消除了缓冲区与初始化隐患，并统一注释。
 
 以下是恢复或二次开发前必须确认的事项，按影响程度排序。
 
@@ -103,3 +103,34 @@ v_target_r = ClampF(out_r, -ABS_MAX_PWM, 1.9f * ABS_MAX_PWM);  // [-200, 380]
 | `Hardware/mt_motor.c` | 删除注释掉的 `ClampPWM` 死代码、统一缩进 | 无 |
 
 **未改动**：所有 PID 参数、控制律、状态机逻辑、引脚分配、中断配置，以及 `Library/`、`Start/` 下的官方库文件。
+
+---
+
+## 9. 超声波模块的三处现场状态
+
+| 位置 | 现象 | 影响 |
+| --- | --- | --- |
+| `Ultrasonic_IsObstacleDetected()` | 原为恒返回 `false` 的占位函数 | 该接口从未真正参与避障判定 |
+| `Ultrasonic_Polling_Measure()` | 用 `777.0f` / `888.0f` / `150.0f` 表示诊断状态 | 这些值会写进 `distance`，调用方若当真实距离使用会误判 |
+| `g_ultrasonic` | 声明为 `volatile`，原用 `memset` 清零 | 丢失易失性限定语义，编译器优化下行为不可靠 |
+
+**已处理但保持行为**：障碍物判定改为编译期开关 `ULTRASONIC_OBSTACLE_CHECK`（默认 `0`，仍是占位行为），启用后才按 `ULTRASONIC_OBSTACLE_CM` 判断；清零改为静态零值整体赋值。**启用开关会改变避障状态机行为，必须先在实车上验证阈值。**
+
+诊断码建议后续改为独立的状态枚举，不要复用 `distance` 字段。
+
+---
+
+## 10. 迭代 6 改动清单
+
+| 文件 | 改动 | 行为影响 |
+| --- | --- | --- |
+| `Hardware/mt_vofa.c` | `sprintf` → `snprintf`，按 `sizeof(txBuffer)` 限制并钳制帧长 | 正常范围内无影响，消除缓冲区溢出 |
+| `Hardware/mt_mpu6050.c` | WHO_AM_I 校验改为 `MPU6050_STRICT_ID_CHECK` 开关（默认 0） | 无，默认仍跳过校验，但保留诊断值 |
+| `Hardware/mt_mpu6050.c` | 新增 `g_mpu6050DeviceId` 保存读回的器件 ID | 无，供在线诊断 |
+| `Hardware/mt_encoder.c` | `PI` → `ENCODER_PI`，避免与 `math.h` 宏冲突 | 无 |
+| `Hardware/mt_encoder.c` | `GPIO_InitStructure.GPIO_Speed` 显式初始化 | 输入模式下无影响，消除结构体残留值 |
+| `Hardware/mt_track_detect.c` | 能量累加循环 `5` → `SENSOR_MAX` | 无（当前枚举值即 5），消除数量变更时的越界隐患 |
+| `Hardware/mt_ultrasonic.c` | `volatile` 结构体改用零值整体赋值，移除 `string.h` | 无 |
+| 全仓 `.c/.h` | 30 处 `【修改】/【关键修复】` 类临时标记改为正式注释 | 无 |
+
+所有改动均通过花括号、圆括号平衡自检；控制律与参数未动。

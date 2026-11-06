@@ -47,7 +47,7 @@ typedef struct {
     RingPhase_e ringPhase;
     float ringTargetYaw;          // 目标角度
     
-    // 【新增】环岛积分锁核心变量
+    /* 环岛积分锁计数变量 */
     float ringEntryYaw;           // 入环时的基准角度 (0°参考点)
     int8_t ringDirection;         // 环岛方向: 1为左环(Yaw增加), -1为右环(Yaw减小)
     

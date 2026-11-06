@@ -7,7 +7,7 @@
 //   软件 I2C 驱动部分 (专门解决引脚接反/硬件I2C不稳的问题) 
 // ================================================================ 
 
-// 【关键修改】这里定义您接反后的引脚 
+/* 本板 SCL / SDA 与常规接法相反，按实际接线定义 */
 // 原始定义：SCL=PB10, SDA=PB11 
 // 现在的定义（接反修正版）： 
 #define I2C_PORT    GPIOB 
@@ -21,7 +21,13 @@
 #define I2C_SDA_L   GPIO_ResetBits(I2C_PORT, I2C_SDA_PIN) 
 #define I2C_SDA_READ GPIO_ReadInputDataBit(I2C_PORT, I2C_SDA_PIN) 
 
-MPU6050_t g_mpu6050; 
+MPU6050_t g_mpu6050;
+
+/* 是否启用 WHO_AM_I 严格校验：0 保持比赛现场行为，1 为 ID 不符即初始化失败。 */
+#define MPU6050_STRICT_ID_CHECK 0
+
+/* 最近一次读回的器件 ID，供在线诊断接线与器件状态使用。 */
+volatile uint8_t g_mpu6050DeviceId = 0; 
 
 // 软件I2C初始化 (覆盖 main.c 里的配置) 
 void MyI2C_Init(void) 
@@ -37,12 +43,12 @@ void MyI2C_Init(void)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz; 
     GPIO_Init(I2C_PORT, &GPIO_InitStructure); 
     
-    // 2. 【关键新增】配置 AD0 (PB14) 为推挽输出 
+    /* 配置 AD0（PB14）为推挽输出 */
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14; 
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 
     GPIO_Init(GPIOB, &GPIO_InitStructure); 
     
-    // 3. 【关键操作】拉低 PB14 -> 设定地址为 0xD0 
+    /* 拉低 PB14，设定器件地址 0xD0 */
     // (如果您想用 0xD2，就把这就改成 GPIO_SetBits) 
     GPIO_ResetBits(GPIOB, GPIO_Pin_14); 
     
@@ -239,21 +245,22 @@ _Bool MPU6050_Init(void)
     MPU6050_WriteReg(0x1B, 0x18); // 陀螺仪 ±2000dps 
     MPU6050_WriteReg(0x1C, 0x18); // 加速度计 ±16g 
     
-    // 4. 检查ID
+    // 4. 读取 WHO_AM_I，保留诊断值
     uint8_t id = MPU6050_ReadReg(0x75);
-    
-    // 【修改】注释掉报错返回，不管 ID 是多少，都强行返回成功！
-    /* if (id != 0x68) {
-        return 0; // 初始化失败
+    g_mpu6050DeviceId = id;
+
+    /* 严格校验默认关闭：比赛现场部分批次模块读回值不稳定，
+       为避免初始化失败而跳过 ID 拦截。需要恢复校验时把上面的宏改成 1。 */
+#if MPU6050_STRICT_ID_CHECK
+    if (id != 0x68) {
+        return 0;
     }
-    */ 
-    
-    // --- 【新增】核心修复：增加缓冲延时 ---
-    // 给用户 1 秒钟的时间把手拿开，确保车身绝对静止
+#endif
+
+    /* 上电后留 1 秒让车身静止，再采集陀螺仪零点。 */
     Delay_ms(1000);
 
-    // 5. 执行校准 
-    // 建议把采样次数从 200 改为 500，计算更准的零点
+    // 5. 执行校准（500 次采样求零点）
     MPU6050_CalibrateGyro(500); 
     
     return 1; // 初始化成功 
@@ -314,7 +321,7 @@ void MPU6050_Update(void)
     float dt, accelPitch, accelRoll;
     static uint32_t lastUpdate = 0;
     
-    // --- 【新增】滑动窗口滤波变量 ---
+    /* 滑动窗口滤波变量 */
     static float gyroZ_buffer[GYRO_FILTER_WINDOW] = {0};
     static uint8_t buffer_idx = 0;
     static bool buffer_filled = false;
@@ -349,7 +356,7 @@ void MPU6050_Update(void)
     float gyroZ_raw = (float)gz * (2000.0f / 32768.0f);
     float gyroZ_final = 0.0f;
 
-    // --- 【核心升级】滤波与死区处理 ---
+    /* 滤波与死区处理 */
     if(g_mpu6050.calibrationDone) {
         // A. 扣除静态零偏
         float biasZ = g_mpu6050.gyroBias[2] * (2000.0f / 32768.0f);

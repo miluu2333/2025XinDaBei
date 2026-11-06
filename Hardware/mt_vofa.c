@@ -16,7 +16,7 @@
 #include "main.h"
 #include <string.h>
 #include <stdarg.h>
-#include <stdio.h> // 确保包含 sprintf
+#include <stdio.h>  /* snprintf：带长度限制的格式化输出 */
 #include "Delay.h" 
 // 全局变量定义
 Vofa_t g_vofa;
@@ -131,16 +131,24 @@ void Vofa_PackJustFloat(void) {
 
 // 打包原始数据格式 (CSV)
 void Vofa_PackRawData(void) {
-    uint16_t index = 0;
-    index += sprintf((char*)&g_vofa.txBuffer[index], "%d,%d,%d,%d,%d,%d,%.2f\r\n",
-                    g_telemetryData.trackDeviation,
-                    g_telemetryData.adcValues[0], // L2
-                    g_telemetryData.adcValues[1], // L1
-                    g_telemetryData.adcValues[2], // M
-                    g_telemetryData.adcValues[3], // R1
-                    g_telemetryData.adcValues[4], // R2
-                    g_telemetryData.yawAngle);
-    g_vofa.txBufferSize = index;
+    /* 用 snprintf 限定写入长度，避免格式化结果超出 txBuffer[128]。
+       返回值是"本应写入"的字节数，需钳制后才能作为实际帧长。 */
+    int written = snprintf((char*)g_vofa.txBuffer, sizeof(g_vofa.txBuffer),
+                           "%d,%d,%d,%d,%d,%d,%.2f\r\n",
+                           g_telemetryData.trackDeviation,
+                           g_telemetryData.adcValues[0],  // L2
+                           g_telemetryData.adcValues[1],  // L1
+                           g_telemetryData.adcValues[2],  // M
+                           g_telemetryData.adcValues[3],  // R1
+                           g_telemetryData.adcValues[4],  // R2
+                           g_telemetryData.yawAngle);
+    if (written < 0) {
+        g_vofa.txBufferSize = 0;
+        return;
+    }
+    g_vofa.txBufferSize = (written < (int)sizeof(g_vofa.txBuffer))
+                         ? (uint16_t)written
+                         : (uint16_t)sizeof(g_vofa.txBuffer);
 }
 
 // 更新遥测数据

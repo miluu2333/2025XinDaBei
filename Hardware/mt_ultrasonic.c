@@ -10,7 +10,10 @@
  volatile Ultrasonic_t g_ultrasonic; 
  
  void Ultrasonic_Init(void) {
-    memset((void*)&g_ultrasonic, 0, sizeof(Ultrasonic_t)); 
+    /* g_ultrasonic 带 volatile，直接 memset 会丢掉限定符语义；
+       改用静态零值整体赋值，效果相同且保留易失性访问。 */
+    static const Ultrasonic_t s_ultrasonicZero = {0};
+    g_ultrasonic = s_ultrasonicZero; 
     
     // 1. 强制初始化 GPIOB
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE); 
@@ -31,7 +34,7 @@
     // 默认拉低 Trig
     GPIO_ResetBits(GPIOB, GPIO_Pin_0); 
     
-    // 【修改 1】采样间隔从 60ms 压缩到 20ms (提升3倍刷新率)
+    /* 采样间隔 20 ms，约 50 Hz 刷新。 */
     g_ultrasonic.measureInterval = 20;
     g_ultrasonic.enable = true;
 } 
@@ -45,7 +48,7 @@
      Delay_us(10); 
      uint16_t t_check2 = TIM_GetCounter(TIM3); 
      
-     // 【错误代码 777】：TIM3 根本没走字（时钟没开，或配置错了） 
+     /* 诊断码 777：TIM3 未计数（时钟或配置异常） */
      if (t_check1 == t_check2) { 
          g_ultrasonic.distance = 777.0f; 
          return; 
@@ -83,11 +86,11 @@
          timeout++;
          Delay_us(1);
          
-         // 【修改 2】超时截断
+         /* 超时截断 */
          // 只要超过 6000us (约 1米)，就认为前方空旷，直接退出。
          // 之前是 30000us，会导致主循环卡顿严重。
          if (timeout > 6000) {
-             g_ultrasonic.distance = 150.0f; // 假装是个安全距离，只要大于50即可
+             g_ultrasonic.distance = 150.0f;  /* 超时按安全距离处理 */
              return;
          }
      } 
@@ -125,6 +128,19 @@
  void Ultrasonic_EchoCallback(void) {} 
  float Ultrasonic_GetDistance(void) { return g_ultrasonic.distance; } 
  // ... (其他函数保持原样) 
- bool Ultrasonic_IsObstacleDetected(void) { return false; } 
+ /* 障碍物判定开关：0 保持比赛现场的占位行为，1 启用基于距离的判断。
+   启用后会影响避障状态机，改前须先在实车上验证阈值。 */
+#define ULTRASONIC_OBSTACLE_CHECK 0
+#define ULTRASONIC_OBSTACLE_CM    30.0f
+
+bool Ultrasonic_IsObstacleDetected(void) {
+#if ULTRASONIC_OBSTACLE_CHECK
+    return (g_ultrasonic.distance > 0.1f) &&
+           (g_ultrasonic.distance < ULTRASONIC_OBSTACLE_CM);
+#else
+    /* 占位实现：现场调试期间障碍物判定由状态机内部完成，此接口恒返回否。 */
+    return false;
+#endif
+} 
  void Ultrasonic_Enable(bool enable) { g_ultrasonic.enable = enable; } 
  void Ultrasonic_SetObstacleThreshold(float threshold) {}

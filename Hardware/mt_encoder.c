@@ -16,7 +16,7 @@ Encoder_t g_encoderRight;
 // 参数定义
 #define ENCODER_PULSE_PER_REVOLUTION 1024  // 逐飞1024线
 #define WHEEL_RADIUS_CM             3.25f  // 轮子半径(cm)
-#define PI                           3.1415926f
+#define ENCODER_PI                  3.1415926f
 
 // 配置脉冲+方向模式的辅助函数
 static void Encoder_Config_PulseDir(TIM_TypeDef* TIMx, uint16_t ClockSource) {
@@ -28,7 +28,7 @@ static void Encoder_Config_PulseDir(TIM_TypeDef* TIMx, uint16_t ClockSource) {
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(TIMx, &TIM_TimeBaseStructure);
     
-    // 【关键修复】使用库文件中正确的宏名称: TIM_TIxExternalCLK1Source_TI2
+    /* 脉冲 + 方向模式：外部时钟源取自 TI2 */
     TIM_TIxExternalClockConfig(TIMx, ClockSource, TIM_ICPolarity_Rising, 0);
     
     TIM_SetCounter(TIMx, 0);
@@ -38,6 +38,9 @@ static void Encoder_Config_PulseDir(TIM_TypeDef* TIMx, uint16_t ClockSource) {
 // 编码器初始化
 void Encoder_Init(void) {
     GPIO_InitTypeDef GPIO_InitStructure;
+
+    /* 输入模式下 GPIO_Speed 不生效，但显式初始化可避免结构体残留值。 */
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
@@ -51,7 +54,7 @@ void Encoder_Init(void) {
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
     
-    // 【关键修复】传入正确的宏参数
+    /* 按上述模式初始化编码器定时器 */
     Encoder_Config_PulseDir(TIM4, TIM_TIxExternalCLK1Source_TI2);
     
     // 2. 右轮 (TIM3) - PB5脉冲, PB4方向
@@ -65,7 +68,7 @@ void Encoder_Init(void) {
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
     
-    // 【关键修复】传入正确的宏参数
+    /* 按上述模式初始化编码器定时器 */
     Encoder_Config_PulseDir(TIM3, TIM_TIxExternalCLK1Source_TI2);
     
     g_encoderLeft.lastTimerVal = 0;
@@ -87,7 +90,7 @@ static void UpdateEncoderSpeed(TIM_TypeDef* TIMx, GPIO_TypeDef* DirPort, uint16_
     
     if (intervalMs > 0) {
         float revolutions = (float)diff / ENCODER_PULSE_PER_REVOLUTION;
-        float distanceCm = revolutions * 2 * PI * WHEEL_RADIUS_CM;
+        float distanceCm = revolutions * 2.0f * ENCODER_PI * WHEEL_RADIUS_CM;
         enc->speed = distanceCm / (intervalMs / 1000.0f);
     }
 }

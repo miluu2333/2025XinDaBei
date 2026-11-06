@@ -101,7 +101,7 @@ void ModeControl_Execute(void)
         case MODE_DEBUG:
             // 模式2: 调试模式
             // 动作:
-            // 【改回】强制锁死电机，防止乱动
+            /* 强制锁死电机，防止误动作 */
             Motor_Stop();
             
             // 传感器数据更新和VOFA发送由 main.c 统一处理，这里不用写
@@ -147,7 +147,7 @@ void ModeControl_SetMode(RUN_MODE new_mode)
             Buzzer_Tone(1000, 100);
             Delay_ms(100);
             Buzzer_Tone(1000, 100);
-            // 【改回】强制停车，不需要记录 g_DebugTargetYaw 了
+            /* 强制停车，不再记录调试目标角度 */
             Motor_Stop();
             break;
             

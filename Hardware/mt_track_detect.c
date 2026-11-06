@@ -1,7 +1,7 @@
 /*
  * mt_track_detect.c
  *
- * Modified: 环岛检测逻辑更新 (4000->3700 且 竖电感约束)
+ * Modified: 环岛入口改为阈值判断与竖电感约束，并加入连续计数滤波
  */
 
 #include "mt_track_detect.h"
@@ -42,7 +42,9 @@ void TrackDetect_Update(void) {
     
     // 4. 丢线计时
     float total_energy = 0;
-    for(int i=0; i<5; i++) total_energy += (float)g_trackSensor.filtered[i];
+    for (uint8_t i = 0; i < SENSOR_MAX; i++) {
+        total_energy += (float)g_trackSensor.filtered[i];
+    }
 
     if (total_energy < 300) { 
         g_trackSensor.lostLineDuration += 2; 
@@ -144,7 +146,7 @@ void TrackDetect_CalculateDeviation(void) {
 }
 
 // ============================================================
-// 【核心修改】环岛入口检测 (直接阈值判断 + 连续计数滤波)
+/* 环岛入口检测：阈值判断 + 连续计数滤波 */
 // ============================================================
 bool TrackDetect_CheckRingEntry(void) {
     // 1. 获取中间电感值和竖直电感之和 (使用滤波后的 ADC 原始量纲值 0-4095)

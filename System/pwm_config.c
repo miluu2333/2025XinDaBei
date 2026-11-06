@@ -18,7 +18,7 @@ void PWM_Init(void) {
     GPIO_Init(PWM_PORT, &GPIO_InitStructure);
     
     // 定时器基础配置
-    // 【修正】为了匹配控制代码中 0-1000 的占空比范围，ARR 必须设为 999
+    /* 为匹配控制代码中 0~1000 的占空比范围，ARR 设为 999。 */
     // 计算预分频器以获得约 17kHz 频率:
     // Freq = 72MHz / (Prescaler + 1) / (999 + 1) = 17000
     // => (Prescaler + 1) = 72000000 / 1000 / 17000 ≈ 4.23
@@ -35,7 +35,7 @@ void PWM_Init(void) {
     
     // PWM模式配置
     
-    // --- 【必须加上这一行】 ---
+    /* 必须开启预装载，避免占空比更新出现毛刺。 */
     // 将结构体填入默认值，防止随机垃圾值干扰 TIM1 的高级功能（如互补输出）
     TIM_OCStructInit(&TIM_OCInitStructure);
     
@@ -58,7 +58,7 @@ void PWM_Init(void) {
     // 使能ARR预装载寄存器
     TIM_ARRPreloadConfig(PWM_TIM, ENABLE);
     
-    // --- 【关键】开启TIM1主输出使能(MOE) --- 
+    /* TIM1 是高级定时器，必须开启主输出（MOE）才能输出 PWM。 */
     // TIM1是高级定时器，必须开启主输出才能真正输出PWM波形
     // 否则PA8/PA11引脚会处于高阻抗状态
     TIM_CtrlPWMOutputs(PWM_TIM, ENABLE);
@@ -66,7 +66,7 @@ void PWM_Init(void) {
 
 // 设置PWM占空比
 void PWM_SetDuty(uint8_t channel, uint16_t duty) {
-    // 【核心修复】将最高限幅设置为 900，与mt_pid.c中的设置保持一致
+    /* 占空比上限与 mt_pid.c 的限幅保持一致。 */
     // 允许电机获得足够的PWM信号来实现反转和急转
     if (duty > 900) duty = 900;
     
