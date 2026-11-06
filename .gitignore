@@ -1,0 +1,40 @@
+# Keil/MDK-ARM 编译产物
+*.o
+*.d
+*.crf
+*.axf
+*.htm
+*.lnp
+*.sct
+*.dep
+*.map
+*.lst
+
+# Keil 项目用户设置
+*.uvguix.*
+*.bak
+
+# Objects 和 Listings 目录内容（保留目录结构）
+Objects/*
+!Objects/.gitkeep
+Listings/*
+!Listings/.gitkeep
+
+# DebugConfig 目录
+DebugConfig/
+
+# 编译输出
+*.hex
+*.bin
+*.elf
+
+# 调试文件
+*.dbgconf
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE 配置
+.vscode/
+.idea/
