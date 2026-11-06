@@ -38,3 +38,18 @@ Thumbs.db
 # IDE 配置
 .vscode/
 .idea/
+
+# Keil MDK
+*.obj
+*.tra
+*.__i
+# AURIX ADS
+Debug/
+Release/
+# CMake
+build/
+CMakeFiles/
+# 编辑器
+*.LEGION
+.legion/
+desktop.ini
