@@ -33,6 +33,7 @@ static uint8_t s_avoidPassCount = 0;  /* 已完成的避障次数 */
 // ====================================================================
 #define RING_ENTRY_ANGLE      30.0f
 #define OBS_DETECT_DIST       60.0f   // 检测距离 (cm)
+#define OBS_PHASE_TIMEOUT_MS   2000   /* 【优化13】避障相位超时（ms） */
 
 // 辅助函数
 uint32_t GetPhaseDuration(void) { return GetTick() - g_stateMachine.obsPhaseTime; }
@@ -245,7 +246,7 @@ void State_HandleObstacle(void) {
             }
 
             // 超时强制切回 (防止一直找不到线)
-            if (GetPhaseDuration() > 2000) {
+            if (GetPhaseDuration() > OBS_PHASE_TIMEOUT_MS) {
                  s_avoidPassCount++; // 即使是超时切回也算一次
                  if (s_avoidPassCount >= 3) {
                      ModeControl_SetMode(MODE_STOP);

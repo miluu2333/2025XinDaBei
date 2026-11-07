@@ -6,6 +6,10 @@
  #include "main.h"
  #include <string.h>
  #include "Delay.h"
+/* 【优化13】超声波超时与有效距离阈值，取值与原字面量完全一致 */
+#define ULTRASONIC_ECHO_RISE_TIMEOUT_US  2000    /* 等待 Echo 变高上限（us） */
+#define ULTRASONIC_ECHO_FALL_TIMEOUT_US  6000    /* 等待 Echo 变低上限（us） */
+#define ULTRASONIC_MAX_DISTANCE_CM       500.0f  /* 有效测距上限（cm） */
 
  volatile Ultrasonic_t g_ultrasonic;
 
@@ -69,7 +73,7 @@
      while (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_1) == 0) {
          timeout++;
          Delay_us(1);
-         if (timeout > 2000) { // 等待2ms没反应就拉倒
+         if (timeout > ULTRASONIC_ECHO_RISE_TIMEOUT_US) { // 等待2ms没反应就拉倒
              g_ultrasonic.distance = 888.0f;
              return;
          }
@@ -89,7 +93,7 @@
          /* 超时截断 */
          // 只要超过 6000us (约 1米)，就认为前方空旷，直接退出。
          // 之前是 30000us，会导致主循环卡顿严重。
-         if (timeout > 6000) {
+         if (timeout > ULTRASONIC_ECHO_FALL_TIMEOUT_US) {
              g_ultrasonic.distance = 150.0f;  /* 超时按安全距离处理 */
              return;
          }
@@ -106,7 +110,7 @@
      float rawDistance = (float)dt_us / 58.0f;
 
      // 正常更新
-     if (rawDistance > 0.1f && rawDistance < 500.0f) {
+     if (rawDistance > 0.1f && rawDistance < ULTRASONIC_MAX_DISTANCE_CM) {
          g_ultrasonic.distance = rawDistance;
      }
  }

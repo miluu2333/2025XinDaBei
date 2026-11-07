@@ -33,6 +33,7 @@ volatile uint16_t g_adcBuffer[SENSOR_MAX];
 #define BASE_SPEED_RIGHT  100
 int setup_speed_l = BASE_SPEED_LEFT;
 int setup_speed_r = BASE_SPEED_RIGHT;
+#define LED_BLINK_PERIOD_MS    500    /* 【优化13】主循环 LED 翻转周期（ms） */
 
 // 函数声明
 void RCC_Configuration(void);
@@ -166,7 +167,7 @@ int main(void) {
         ModeControl_Execute();
 
         static uint32_t ledTick = 0;
-        if (GetTick() - ledTick > 500) {
+        if (GetTick() - ledTick > LED_BLINK_PERIOD_MS) {
             ledTick = GetTick();
             LED1_Turn();
         }

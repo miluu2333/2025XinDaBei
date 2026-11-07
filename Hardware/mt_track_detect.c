@@ -13,6 +13,11 @@
 
 // 滤波系数
 #define FILTER_ALPHA  0.7f
+/* 【优化13】判定阈值命名常量，取值与原字面量完全一致 */
+#define TRACK_MIN_VALID_ENERGY     500    /* 偏差计算有效能量下限 */
+#define TRACK_RING_CENTER_MIN      3000   /* 环岛入口中间电感下限 */
+#define TRACK_RING_VERT_SUM_MAX    2000   /* 环岛入口竖电感之和上限 */
+#define TRACK_SHARP_VERT_MIN       2000   /* 急弯竖电感判定下限 */
 
 TrackSensor_t g_trackSensor;
 
@@ -122,7 +127,7 @@ void TrackDetect_CalculateDeviation(void) {
 
     float total_energy = L_out + L_in + M + R_in + R_out;
 
-    if (total_energy < 500) {
+    if (total_energy < TRACK_MIN_VALID_ENERGY) {
         g_trackSensor.deviation = g_trackSensor.lostLineLastValidDev;
         return;
     }
@@ -154,7 +159,7 @@ bool TrackDetect_CheckRingEntry(void) {
     uint32_t vert_sum = (uint32_t)g_trackSensor.filtered[SENSOR_L1] + (uint32_t)g_trackSensor.filtered[SENSOR_R1];
 
     // 2. 直接判定逻辑：中间感应极强 且 竖向感应极弱 (典型环岛缺口特征)
-    if (center_val > 3000 && vert_sum < 2000) {
+    if (center_val > TRACK_RING_CENTER_MIN && vert_sum < TRACK_RING_VERT_SUM_MAX) {
         static uint8_t ring_cnt = 0;
         ring_cnt++;
         if (ring_cnt >= 1) { // 连续 2 次检测到，确保信号稳定
@@ -182,7 +187,7 @@ bool TrackDetect_CheckSharpTurn(void) {
 
     // 2. 判定逻辑：只要有一端的竖电感强度超过 3000
     // 这代表侧边感应器直接压在了横向黑线上，是典型的直角或急弯特征
-    if (l_vert > 2000 || r_vert > 2000) {
+    if (l_vert > TRACK_SHARP_VERT_MIN || r_vert > TRACK_SHARP_VERT_MIN) {
         static uint8_t sharp_filter = 0;
         sharp_filter++;
         // 连续 2 次触发确保不是信号跳变（约 10ms）
